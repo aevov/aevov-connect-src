@@ -8,10 +8,12 @@ import HyperText from '@/components/HyperText';
 import SocialNetwork from '@/nostr/SocialNetwork';
 import localState from '@/state/LocalState.ts';
 import { translate as t } from '@/translations/Translation.mjs';
+import { language } from '@/translations/Translation.mjs';
 import Helpers from '@/utils/Helpers';
 
 import Author from './Author';
 import Helmet from './Helmet';
+import TagPills from './TagPills';
 
 let loadReactions = true;
 
@@ -46,6 +48,15 @@ const Content = ({ standalone, isQuote, fullWidth, asInlineQuote, event, isPrevi
       });
     }
   }, [event.pubkey]);
+
+  useEffect(() => {
+    const lang = language.split('-')[0];
+    if (lang !== 'en' && event.content && !translatedText) {
+      Helpers.translateText(event.content, event.id).then((res) => {
+        if (res && res !== event.content) setTranslatedText(res);
+      });
+    }
+  }, [event.id, event.content]);
 
   const emojiOnly = event.content?.length === 2 && Helpers.isEmoji(event.content);
 
@@ -123,6 +134,21 @@ const Content = ({ standalone, isQuote, fullWidth, asInlineQuote, event, isPrevi
           }}
         >
           {t(`show_${showMore ? 'less' : 'more'}`)}
+        </a>
+      </Show>
+      <TagPills event={event} />
+      <Show when={!isPreview && !asInlineQuote && !translatedText && event.content?.length > 20}>
+        <a
+          className="text-xs link mb-1"
+          style={{ cursor: 'pointer' }}
+          onClick={(e) => {
+            e.preventDefault();
+            Helpers.translateText(event.content, event.id).then((res) => {
+              if (res) setTranslatedText(res);
+            });
+          }}
+        >
+          {t('translate')}
         </a>
       </Show>
       <Show when={!isPreview && !asInlineQuote && loadReactions}>

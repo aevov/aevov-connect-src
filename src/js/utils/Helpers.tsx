@@ -64,21 +64,40 @@ export default {
     return s.match(emojiRegex) !== null;
   },
 
-  async translateText(text: string): Promise<string> {
-    const res = await fetch('https://translate.iris.to/translate', {
-      method: 'POST',
-      body: JSON.stringify({
-        q: text,
-        source: 'auto',
-        target: language.split('-')[0],
-        format: 'text',
-      }),
-      headers: { 'Content-Type': 'application/json' },
-    });
+  async translateText(text: string, postId?: string): Promise<string> {
+    const targetLang = language.split('-')[0];
+    if (targetLang === 'en') return text;
 
-    const json = await res.json();
+    if (postId) {
+      try {
+        const res = await fetch('/api/social?action=translate', {
+          method: 'POST',
+          body: JSON.stringify({ postId, lang: targetLang }),
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.ok && json?.content) return json.content;
+        }
+      } catch (_) {}
+    }
 
-    return json?.translatedText;
+    try {
+      const res = await fetch('https://translate.iris.to/translate', {
+        method: 'POST',
+        body: JSON.stringify({
+          q: text,
+          source: 'auto',
+          target: targetLang,
+          format: 'text',
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      return json?.translatedText;
+    } catch (_) {
+      return text;
+    }
   },
 
   handleLightningLinkClick(e: Event): void {
